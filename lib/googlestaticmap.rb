@@ -42,6 +42,12 @@ class GoogleStaticMap
   # will be scale * width and scale * height
   attr_accessor :scale
 
+  # Styled maps allow you to customize the presentation of the standard Google 
+  # map styles, changing the visual display of such elements as roads, parks, 
+  # and built-up areas to reflect a different style than that used in the default map type.
+  # https://developers.google.com/maps/documentation/staticmaps/#StyledMaps
+  attr_accessor :style
+
   # format of the image:
   # * png8 - 8 bit PNG (default)
   # * png32 - 32 bit PNG
@@ -77,6 +83,17 @@ class GoogleStaticMap
   # Channel - identifier channel for tracking API source in enterprise tools
   #           see https://developers.google.com/maps/documentation/business/clientside/quota for details
   attr_accessor :channel
+
+  # Returns the previously loaded styles hash
+  def self.styles
+    @styles || {}
+  end
+
+  # You can add your styling yml file in your application, eg.:
+  # GoogleStaticMap.styles = YAML.load_file(Rails.root.join("config/googlestaticmap_styles.yml"))
+  def self.styles=(value)
+    @styles = value
+  end
 
   # Takes an optional hash of attributes
   def initialize(attrs={})
@@ -116,7 +133,20 @@ class GoogleStaticMap
     attrs << ["center", @center.to_s] if !@center.nil?
     attrs << ["key", @api_key] if !@api_key.nil?
     attrs << ["client", @client_id] if @api_key.nil? && !@client_id.nil? && !@private_key.nil?
+
+    style_package = GoogleStaticMap.styles.fetch(style,[])
+    style_package.each do |style|
+      feature = style['feature'] || 'all'
+      element = style['element'] || 'all'
+      styleAttr = ["feature:#{feature}","element:#{element}"]
+      style['stylers'].each do |styler|
+        styleAttr << styler
+      end
+      attrs << ['style', styleAttr.join('|')]
+    end if style_package && style
+
     path << attrs.sort_by {|k,v| k}.collect {|attr| "#{attr[0]}=#{attr[1]}"}.join("&")
+
     if @api_key.nil? && !@client_id.nil? && !@private_key.nil?
       signature = GoogleStaticMapHelpers.sign(path, @private_key)
       path << "&signature=" << signature
