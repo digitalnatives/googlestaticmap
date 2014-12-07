@@ -246,6 +246,12 @@ class MapMarker
   # visible region and its opacity/transparency.
   attr_accessor :shadow
 
+  # 1, 2, or 4 for Maps API Premier customers. Defaults to 1. Makes everything
+  # in the image appear larger, useful for displaying on high res mobile
+  # screens.  When setting this, the image's actual width and height in pixels
+  # will be scale * width and scale * height
+  attr_accessor :scale
+
   # Takes an optional hash of attributes
   def initialize(attrs={})
     attrs.each {|k,v| self.send("#{k}=".to_sym,v)}
